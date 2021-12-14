@@ -7,8 +7,10 @@ class game:
         week=None
 
 class play:
-    def __init__(self, id=None,desc=None, time=None,yardline=None,side=None,possessionTeam=None):
+    def __init__(self, id=None,home=None,away=None,desc=None, time=None,yardline=None,side=None,possessionTeam=None,defenseTeam=None,type=None,result=None, yardage=None, penaltyYards=None,playResult=None) :
         self.id=id
+        self.home=home
+        self.away=away
         self.desc=desc
         self.players=[]
         self.football=None
@@ -16,10 +18,19 @@ class play:
         self.yardline=yardline
         self.side=side
         self.possessionTeam=possessionTeam
-        self.defense=None
+        self.defense=defenseTeam
         self.ball_carrier=[]
         self.frames=None
         self.events=None
+        self.type=type
+        self.result=result
+        self.yardage=yardage
+        self.is_penalty= pd.isnull(penaltyYards)
+        self.playResult=playResult
+        self.possession_players=[]
+        self.defense_players=[]
+        #self.returnStart=None
+        #self.returnEnd=None
     def __repr__(self):
         return 'Play: {}, Possesion {} defending {}'.format(self.id, self.possessionTeam,self.defense)
     def __str__(self):
@@ -39,7 +50,23 @@ class play:
             else:     
                 self.players.append(player(id=pplayer,x=df_tempp['x'].to_numpy(),y=df_tempp['y'].to_numpy(),speed=df_tempp['s'].to_numpy(),direction=df_tempp['dir'].to_numpy(),player_label=players_dict[pplayer],ttype=df_tempp['team'].drop_duplicates().iloc[0]))
         self.get_ball_carrier()
-        self.events=df_temp.query('event!="None"')[['event','frameId']].drop_duplicates()       
+        self.events=df_temp.query('event!="None"')[['event','frameId']].drop_duplicates() 
+        self.set_players_index()   
+        #self.returnStart=self.events.query('event in ["punt_received","kick_received"]')['frameId'].iloc[0]
+        #self.returnEnd=self.events.query('event in ["tackle","fumble","out_of_bounds","touchback","touchdown","fair_catch"]')['frameId'].iloc[0] 
+    def set_players_index(self):
+        if self.possessionTeam==self.home:
+            pos_temp='home'
+        else:
+            pos_temp='away'
+        i=0    
+        for pplayer in self.players:
+            if pplayer.type==pos_temp:
+                self.possession_players.append(i)
+            else:
+                self.defense_players.append(i)
+            i=i+1        
+
     def get_ball_carrier(self):
         res=[]
         for player in self.players:
@@ -47,16 +74,25 @@ class play:
         self.ball_carrier=np.asarray(res).argmin(axis=0)
     def distance_to_ball_carrier(self):
         wstart=self.events.query('event in ["punt_received","kick_received"]')['frameId'].iloc[0]
-        wend=self.events.query('event in ["tackle","fumble","out_of_bounds"]')['frameId'].iloc[0]
-        if not len(wend)>0:
+        wend=self.events.query('event in ["tackle","fumble","out_of_bounds","touchdown"]')['frameId'].iloc[0]
+        if wend.size>0:
             wend=self.events['frameId'].iloc[-1]
-
-
-
-
-
-
+        ball_carrier=self.players[self.ball_carrier[wstart]]    
+        res=[]
+        for player in self.players:
+            res.append(ball_carrier.get_distance(player)) 
+        return  np.asarray(res)[:,wstart:wend]    
+    def closest_players(self):
+        distance_mat=self.distance_to_ball_carrier()
+        distance_mat_off=distance_mat[self.possession_players,:]
+        distance_mat_def=distance_mat[self.defense_players,:]
+        closest_off=distance_mat_off.argsort(axis=0).argsort(axis=0)
+        closest_def=distance_mat_def.argsort(axis=0).argsort(axis=0)
+#####------->
         
+          
+
+     
 
 
 
@@ -84,13 +120,23 @@ class player:
 df=pd.read_csv('../data/tracking2018.csv')
 df['game_label']=df.apply(lambda x: get_gamelabel(x['gameId'],x['playId']),axis=1)
 plays=pd.read_csv('../data/plays.csv')
+games=pd.read_csv('../data/games.csv')
+
+df_plays=games.merge(plays, on='gameId')
+df_plays['defenseTeam']=df_plays.apply(lambda x: x['visitorTeamAbbr'] if x['possessionTeam']==x['homeTeamAbbr'] else x['homeTeamAbbr'], axis=1)
 df_players=pd.read_csv('../data/players.csv')
 df_players['player_label']=df_players.apply(lambda x: x['displayName']+'--'+x['Position'], axis=1)
 players_dict=dict(zip(df_players.nflId.tolist(),df_players.player_label.tolist()))
-x=plays.iloc[13770]
-
-temp_play=play(x['gameId'].astype(str)+'--'+x['playId'].astype(str),x['playDescription'], x['gameClock'],x['yardlineNumber'], side=x['yardlineSide'] , possessionTeam=x['possessionTeam'])
+x=df_plays.iloc[13770]
+df_temp=df.query('gameId==2020091401')
+temp_play=play(x['gameId'].astype(str)+'--'+x['playId'].astype(str),x['homeTeamAbbr'],x['visitorTeamAbbr'] ,x['playDescription'], x['gameClock'],x['yardlineNumber'], side=x['yardlineSide'] , possessionTeam=x['possessionTeam'], defenseTeam=x['defenseTeam'],type=x['specialTeamsPlayType'],result=x['specialTeamsResult'], yardage=x['kickReturnYardage'], penaltyYards=x['penaltyYards'], playResult=x['playResult'])
 
 temp_play.add_tracking_data(df)
 
 temp_play.ball_carrier
+
+distance_temp=temp_play.distance_to_ball_carrier()
+
+distance_temp[temp_play.possession_players,:].argsort(axis=0)
+
+distance_mat_off=distance_temp[temp_play.possession_players,:].argmin(axis=0)

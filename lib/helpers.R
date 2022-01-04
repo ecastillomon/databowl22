@@ -1,5 +1,20 @@
 options(scipen=999)
 
+get_game_label=function(df){
+ df %>% mutate(game_label=paste0(gameId,'--',playId) )
+}
+theme_patpaitriot=function (base_size = 12, base_family = "sans") {
+  colors <- tibble::deframe(ggthemes::ggthemes_data[["fivethirtyeight"]])
+  (theme_foundation(base_size = base_size, base_family = base_family) +
+      theme(line = element_line(colour = "black"), rect = element_rect(fill = colors["Light Gray"],
+                                                                       linetype = 0, colour = NA), text = element_text(colour = colors["Dark Gray"]),
+            legend.background = element_rect(), legend.position = "bottom",
+            legend.direction = "horizontal", legend.box = "vertical",
+            panel.grid = element_line(colour = NULL), panel.grid.major = element_line(colour = colors["Medium Gray"]),
+            panel.grid.minor = element_blank(), plot.title = element_text(hjust = 0,
+                                                                          size = rel(1.5), face = "bold"), plot.margin = unit(c(1,
+                                                                                                                                1, 1, 1), "lines"), strip.background = element_rect()))
+}
 overThresh=function(x,thresh=1.1, limit=1){
   slider::slide_dbl(x, function(y){
     any( (tail(y,-1)/head(y,1))>thresh )
@@ -118,8 +133,8 @@ mes.df <- data.frame(mes_nombre = mes.nombres, mes_num = 1:12)
 ipak <- function(pkg){
   new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
   if (length(new.pkg)) 
-    renv::install(new.pkg)
-    # install.packages(new.pkg, dependencies = TRUE)
+    #renv::install(new.pkg)
+    install.packages(new.pkg, dependencies = TRUE)
   sapply(pkg, require, character.only = TRUE)
 }
 # RoundUp -----------------------------------------------------------------

@@ -1,7 +1,7 @@
 library(DBI)
 library(dbplyr)
 library(dplyr)
-dir="/home/esteban/roboShutdown/"
+dir="/home/esteban/nfl-databowl22/"
 con = dbConnect(RSQLite::SQLite(), paste0(dir,"data/dataBowl.db"))
 df_plays= tbl(con, "df_plays")
 games=tbl(con, "games")

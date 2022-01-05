@@ -1,7 +1,7 @@
 options(scipen=999)
 
 get_game_label=function(df){
- df %>% mutate(game_label=paste0(gameId,'--',playId) )
+ df %>% mutate(game_label=paste0(as.integer(gameId),'--',as.integer(playId)) )
 }
 theme_patpaitriot=function (base_size = 12, base_family = "sans") {
   colors <- tibble::deframe(ggthemes::ggthemes_data[["fivethirtyeight"]])

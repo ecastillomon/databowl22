@@ -14,8 +14,9 @@ test_set.add_tracking_data_set(df)
 
 test_set.plays[0].get_yp_model()
 
-df_sample=test_set.plays[0].get_play_sample()
+df_sample=test_set.plays[0].get_yp_model()
 
+df_sample.to_csv('../cache/df_sample_{}.csv'.format(play_id),index=False)
 
 
 test_set.plays[0].side

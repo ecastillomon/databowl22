@@ -78,10 +78,18 @@ class play:
         wend=self.events.query('event in ["tackle","fumble","out_of_bounds","touchdown"]')['frameId'].iloc[0]
         self.playResult=self.football.x[wend-1]                
     def get_yards_gained(self):
-        if self.side=='right':
-            self.yardsGained=self.playResult-self.football.x
-        else:
-            self.yardsGained=self.football.x-self.playResult   
+        self.yardsGained=abs(self.football.x-self.playResult)
+        #if self.type=='Kickoff':
+        #    if self.side=='right':
+        #        self.yardsGained=self.playResult-self.football.x
+        #    else:
+        #        self.yardsGained=self.football.x-self.playResult
+        #elif self.type=='Punt':
+        #    if self.side=='left':
+        #        self.yardsGained=self.playResult-self.football.x
+        #    else:
+        #        self.yardsGained=self.football.x-self.playResult            
+
     def get_yards_gained_frame(self,frame):
         return self.yardsGained[frame-1]
     def get_ball_carrier(self):
@@ -229,4 +237,15 @@ class playSet:
                 print('Error at ', pplay)
                 print('Error: ',e)
 
-        return pd.concat(res,axis=0)           
+        return pd.concat(res,axis=0)
+    def get_play_sample(self):
+        res=[]
+        for pplay in self.plays:
+            try:
+                res.append(pplay.get_yp_model())
+                print('Success at ', pplay)
+            except Exception as e:
+                print('Error at ', pplay)
+                print('Error: ',e)
+
+        return pd.concat(res,axis=0)        

@@ -4,7 +4,14 @@ source('lib/load_db.R')
 ipak(c('dplyr','tidyr','ggplot2','gganimate','av','ggthemes','stringr'))
 df=read.csv('cache/df_sample_2018090903--2956.csv',stringsAsFactors = FALSE)
 
-df %>% ggplot(aes(x=frame,y=predicted_yp)) +geom_point()+geom_smooth()
+df %>% 
+  mutate(gap=target-predicted_yp, delta=predicted_yp-lag(predicted_yp,1), second_delta=delta-lag(delta,1)) %>%
+  ggplot(aes(x=frame,y=predicted_yp)) +geom_point()+
+  geom_point(aes(y=target),color='red')+
+  geom_point(aes(y=gap),color='green')+
+  geom_point(aes(y=delta),color='yellow')+
+  # geom_point(aes(y=second_delta),color='brown')+
+  geom_smooth()+scale_x_continuous(n.breaks = 30)
 
 
 
@@ -27,24 +34,28 @@ df_temp=df_plays %>%
 
 df_football=df_temp %>% filter(displayName=='football')
 
-df_players=df_temp %>% filter(!displayName=='football')
+df_players_temp=df_temp %>% filter(!displayName=='football')
 play_title=df_index %>%  filter(gameId==2018090903 & playId==2956) %>% pull(playDescription)
 play_length=df_temp %>% summarise(frameId=max(frameId))%>% pull(frameId)
-play_frames=ggplot()+
+x_label_func=function(x){x-10}
+play_frames=ggplot(data=df_players_temp)+
   geom_point(data=df_football,aes(x=x,y=y,group=frameId),shape=3)+
-  geom_point(data=df_players,aes(x=x,y=y,group=frameId,shape=team,color=team))+
+  geom_point(data=df_players_temp,aes(x=x,y=y,group=frameId,shape=team,color=team))+
   geom_vline(aes(xintercept=10),linetype=1,alpha=.85,color='#34eb43')+
   geom_vline(aes(xintercept=110),linetype=1,alpha=.85,color='#34eb43')+
   scale_color_brewer(type='qual',palette = 'Set1')+guides(color='none',shape='none')+
+  theme_bw()+
+  theme_patpaitriot()+scale_x_continuous(breaks = seq(10,110,by=10),labels = x_label_func)+
+  transition_states(frameId,transition_length = 2, state_length = 1,
+                    wrap = FALSE)+
   labs(
     title = stringr::str_wrap(play_title,width = 50) ,
-    subtitle = paste0(" Frame: {floor(frame*play_length/250)}"),
+    subtitle = paste0(" Frame: {closest_state}"),
+    x="Yardline",y='',
+    #subtitle = paste0(" Frame: {floor(frame*play_length/1000)}"),
     
     caption = "Source: NFL Data Bowl 2021 \nPY Model \n @ecastillomon @andreacasiragh1"
-  ) +theme_bw()+
-  theme_patpaitriot()+
-  transition_states(frameId,transition_length = 2, state_length = 1,
-                    wrap = FALSE)
+  ) 
 play_anim= animate(
   play_frames,
   fps = 50,

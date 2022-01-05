@@ -7,7 +7,11 @@ import pandas as pd
 import numpy as np
 
 
-df=pd.read_csv('../data/tracking2018.csv')
+#df=pd.read_csv('../data/tracking2018.csv')
+df=pd.read_csv('/mnt/01e93028-9cf3-4480-a1c8-8c693bc9b031/Downloads/nfl-databowl/tracking2018.csv')
+df2=pd.read_csv('/mnt/01e93028-9cf3-4480-a1c8-8c693bc9b031/Downloads/nfl-databowl/tracking2019.csv')
+df=pd.concat([df,df2],axis=0)
+del df2
 
 df['game_label']=df.apply(lambda x: get_gamelabel(x['gameId'],x['playId']),axis=1)
 plays=pd.read_csv('../data/plays.csv')
@@ -23,7 +27,7 @@ df_plays['game_label']=df_plays.apply(lambda x: get_gamelabel(x['gameId'],x['pla
 
 
 ids_available=df['game_label'].drop_duplicates().tolist()
-ids_returns=df_plays.query('kickReturnYardage==kickReturnYardage')['game_label'].drop_duplicates().tolist()
+ids_returns=df_plays.query('kickReturnYardage==kickReturnYardage and specialTeamsPlayType=="kickoff"')['game_label'].drop_duplicates().tolist()
 
 ids=list(set(ids_available) & set(ids_returns))
 
@@ -34,10 +38,16 @@ test_set.add_plays(df_plays)
 
 
 test_set.add_tracking_data_set(df)
-df_datamart=test_set.get_training_sample(10)
+df_datamart=test_set.get_training_sample(5)
 
 df_datamart.to_csv('../cache/df_datamart.csv',index=False)
 df_datamart.to_pickle('../cache/df_datamart.pickle')
 
 
-
+id_temp=['2019122908--2061']
+test_set=playSet(id_temp)
+test_set.add_plays(df_plays)
+test_set.add_tracking_data_set(df)
+test_set.plays[0].get_play_sample()
+test_set.plays[0].football.x
+test_set.plays[0].playResult
